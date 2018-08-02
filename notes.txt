@@ -1,0 +1,118 @@
+create table customers (
+    id serial primary key,
+    name varchar(20)
+)
+
+*** Add column after table creation *** 
+
+alter table customers 
+add column address text 
+
+*** Rename column after table creation *** 
+
+alter table customers 
+rename column address 
+to customer_address
+
+*** Drop column after table creation *** 
+
+alter table customers 
+drop column customer_address 
+
+*** Set different data type on column after table creation *** 
+
+alter table customers 
+alter column name 
+set data type text
+
+*** Drop table -- be careful with this! This is permanent *** 
+
+drop table customers 
+
+*** Creating a table with a foreign key referencing customers. Used to link *** 
+
+create table orders (
+    id serial primary key,
+    item_name text,
+    customer_id integer references customers(id)
+)
+
+create table service_reps (
+    id serial primary key,
+    name text
+)
+
+*** This is a link table. There is a many to many relationship between service reps and customers so we need a seperate table for every interaction. It makes no sense to add foreign keys to either customer or service reps because there could be an unlimited number of interactions between the two. We don't want to add columns each time there is a new interaction *** 
+
+create table service_history (
+    id serial primary key, 
+    service_rep_id integer references service_reps(id),
+    customer_id integer references customers(id)
+)
+
+create table customer_login_information (
+    id serial primary key,
+    username text,
+    password text,
+    customer_id integer references customers(id)
+)
+
+insert into customers(name) 
+values ('John'), ('James'), ('Ariel')
+
+insert into orders (item_name, customer_id)
+values ('Shampoo', 1), 
+('Soap', 1), 
+('Race car', 2),
+('Game of thrones disks', 3),
+('Poster', 2),
+('Toothbrush', 1),
+('Deodorant', 1),
+('Yacht', 2),
+('Borderlands', 3),
+('Plane', 2),
+('Comb', 1)
+
+insert into service_reps (name)
+Values ('Service bot 3000'), ('Greg')
+
+insert into service_history (service_rep_id, customer_id)
+values (1, 1), (2, 1), (2,2), (1, 3), (1, 2), (2, 3)
+
+insert into customer_login_information (username, password, customer_id)
+values ('johnyouknowhowiroll', '1234asdf', 1), ('youngmoney', '#humble', 2), ('mermaidindisguise', 'mydadisking', 3)
+
+*** This is an inner join on customers and their login information. It will only give us back rows where it can find a match in both tables *** 
+
+select * from customers c 
+join customer_login_information cli 
+on c.id = cli.customer_id;
+
+*** This join will give us one row for each order in the order table with the customer information for each order. Meaning I could get the customer information for customer 1 7 times if there are 7 orders *** 
+
+select * from customers c 
+join orders o 
+on c.id = o.customer_id 
+
+*** This is our join for our many to many relationship. Because we use a join table we have to combine two different joins in here to access the information from the customer table and the service rep table *** 
+
+select c.name as customer_name, sr.name as service_rep_name from service_history sh  
+join customers c 
+on c.id = sh.customer_id 
+join service_reps sr 
+on sr.id = sh.service_rep_id
+
+*** Group by is used when we have aggregate functions in our select to group our results. If we forget the group by in this query, we will get two columns in our results. One is the count of all rows that pass the join. The second column would be name with a random, incorrect value of a customer name. Group by will add an entry for each unique name in our customer table *** 
+
+select count(*) as total_orders, c.name from customers c
+join orders o 
+on c.id = o.customer_id
+group by c.name
+
+*** Having is added here after our group by to filter our grouped results. The query before having will give us a count of the total number of orders for each customer. We would only like to see customers that have ordered more than 1 time **** 
+
+select count(*) as total_orders, c.name from customers c
+join orders o 
+on c.id = o.customer_id
+group by c.name
+having count(*) > 1
